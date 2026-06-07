@@ -1,0 +1,11 @@
+[theme]
+# Cool, focused, modern. Dark base with a vivid accent.
+base = "dark"
+primaryColor = "#7C3AED"          # vivid indigo — buttons + highlights
+backgroundColor = "#0B0F19"       # near-black, less harsh than pure black
+secondaryBackgroundColor = "#151B2B"  # cards / sidebar
+textColor = "#E5E7EB"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

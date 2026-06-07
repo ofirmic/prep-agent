@@ -1,0 +1,82 @@
+# Golden set for interview prep doc evaluation.
+#
+# Each case captures what a "good" prep doc for this company MUST include and
+# MUST NOT include. The judge uses these as grading criteria; the retrieval
+# eval uses `retrieval.expected_topics` as recall/precision ground truth.
+#
+# manual_scores is optional — fill in when you grade a case by hand to
+# calibrate the LLM judge.
+
+- company: Chalk
+  one_liner: "ML feature platform delivering training-serving consistency at Rust-speed for production ML"
+  must_mention_topics:
+    - feature platform / feature store
+    - training-serving consistency
+    - real-time / sub-second feature serving
+    - Rust performance angle
+    - Series A funding (Felicis)
+    - in-person early-employee role
+    - fraud detection / healthcare / recommendations use cases
+  must_connect_to_background:
+    - AMC pipeline experience (data freshness, async ingestion)
+    - SingleStore serving tier (analog to feature serving)
+    - Snowflake → SingleStore freshness handoff (analog to training-serving boundary)
+    - AI agents and LLM observability tooling
+  forbidden:
+    - generic "be enthusiastic about the mission" advice
+    - hallucinated Chalk product features not in signals
+    - vague "research the company" suggestions
+    - advice that doesn't connect to candidate's specific background
+  retrieval:
+    expected_topics:
+      - "AMC"            # AMC project deepdive should surface
+      - "Architecture challenges"   # the new section we wrote
+      - "system design"  # playbook system design parts
+      - "AI"             # AI engineer roadmap and AI sections
+  # manual_scores filled in after I grade this one by hand:
+  # manual_scores:
+  #   specificity: 4
+  #   grounding: 5
+  #   actionability: 4
+  #   personalization: 5
+
+- company: Skai
+  one_liner: "Marketing intelligence platform integrating ad data across Amazon, Google, Meta and others"
+  must_mention_topics:
+    - marketing / ad tech domain
+    - data integration / data pipeline complexity
+    - multi-tenant SaaS shape
+    - acquisition history (Kenshoo → Skai rebrand)
+  must_connect_to_background:
+    - direct insider knowledge — candidate worked here
+    - team Nexus / AMC integration ownership
+    - '"why leaving Skai" framing (layoffs, well understood in Israeli market)'
+  forbidden:
+    - treating this as an unknown company to research
+    - missing the insider context advantage
+    - generic ad-tech platitudes
+  retrieval:
+    expected_topics:
+      - "AMC"
+      - "Skai"
+
+- company: Anthropic
+  one_liner: "AI safety company building Claude — frontier foundation models with a safety-first approach"
+  must_mention_topics:
+    - Claude / foundation model focus
+    - AI safety positioning
+    - large research+engineering org
+    - applied AI / product layer (Claude Code, API)
+  must_connect_to_background:
+    - candidate's AI engineering work (LLM agents, observability)
+    - prep-agent project as portfolio evidence
+    - eval/observability mindset (relevant to Anthropic's work)
+  forbidden:
+    - generic "AI is exciting" framing
+    - claims about Anthropic internals candidate couldn't verify
+    - missing the obvious AI Engineer track fit
+  retrieval:
+    expected_topics:
+      - "AI"
+      - "eval"
+      - "observability"

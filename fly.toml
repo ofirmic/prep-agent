@@ -1,0 +1,43 @@
+# Fly.io configuration.
+# - Rename `app` before `fly launch`; the name is global.
+# - `fly volumes create prep_data --size 1` once, in the chosen region.
+# - Secrets: `fly secrets set ANTHROPIC_API_KEY=... TAVILY_API_KEY=... STREAMLIT_AUTH_PASSWORD=...`
+# - auto_stop_machines = "stop" + min_machines_running = 0 → scales to zero
+#   while idle. First request after idle pays ~5-10s cold start.
+
+app = "prep-agent"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8501"
+
+[[mounts]]
+  source = "prep_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8501
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 25
+    hard_limit = 50
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/_stcore/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

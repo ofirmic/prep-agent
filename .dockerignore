@@ -1,0 +1,31 @@
+# Build cache / VCS
+.git
+.gitignore
+.github
+.venv
+__pycache__
+*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+
+# Local artifacts not wanted in the image
+.env
+.env.*
+!.env.example
+.chroma/
+traces.sqlite*
+prep/
+evals/fixtures/
+evals/results/
+
+# IDE
+.vscode
+.idea
+.DS_Store
+
+# Docs / non-essentials
+*.md
+!README.md
+LICENSE
+docs/

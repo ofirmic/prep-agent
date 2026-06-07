@@ -1,0 +1,16 @@
+# Railway configuration.
+# - Build from Dockerfile (multi-stage, see Dockerfile).
+# - Healthcheck hits Streamlit's built-in endpoint.
+# - Persistent volume must be added in the Railway dashboard:
+#     Settings → Volumes → New Volume → Mount path: /data
+# - Set secrets in the dashboard (Variables tab):
+#     ANTHROPIC_API_KEY, TAVILY_API_KEY, STREAMLIT_AUTH_PASSWORD
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/_stcore/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
