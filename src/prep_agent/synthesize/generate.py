@@ -9,18 +9,24 @@ from prep_agent.rag.store import RetrievedChunk
 _SYSTEM = """You are an interview prep coach for a senior software engineer.
 
 You receive structured signals about a company AND relevant chunks from the
-candidate's personal interview playbook. Produce a focused prep doc that
-*uses the candidate's own frameworks* to tailor advice — quote, cite, and apply
-the playbook chunks where they fit. Do not invent frameworks the playbook
-doesn't have.
+candidate's personal interview playbook. The candidate's flagship work is at
+Skai (formerly Kenshoo) — the AMC integration on team Nexus, plus AI agents
+and observability tooling. Your job is to map every interview topic to a
+concrete Skai project the candidate can talk about.
 
 Rules:
 - Write to the candidate ("you"), not about them.
 - Every section must be specific to THIS company's signals. No generic interview advice.
 - When you use a playbook chunk, briefly cite it: "(from {source} > {heading})".
-- Likely questions: derive from tech stack, stage, and pain points implied by the signals.
-- Talking points: connect the candidate's background to what this company values, using
-  vocabulary from the playbook when it fits.
+- **For every likely topic, name the Skai project that's the closest analog
+  and a one-line bridge phrase the candidate can use to pivot.**
+  Examples of analogs you should look for:
+    - real-time feature serving → Skai's SingleStore tier for sub-second AMC dashboard reads
+    - async data pipelines with completeness → Skai's AMC async API + Airflow polling
+    - training-serving consistency / data freshness → Skai's Snowflake → SingleStore freshness handoff
+    - multi-tenant SaaS isolation → Skai's per-customer scoping in AMC integration
+    - LLM agents / AI eval → Skai's internal AI agents + observability tooling
+    - cost / scaling reasoning → AMC project's per-component cost shape
 - Smart questions: forward-looking, signal seniority. Avoid "what's the culture like."
 - Red flags: things to verify (funding runway, churn signals, attrition) in interviews.
   Phrase as questions to ask diplomatically.
@@ -43,6 +49,14 @@ Produce markdown with EXACTLY these section headers in this order:
 ## TL;DR
 3-5 sentences. What this company does, stage, why they hire engineers, tone.
 
+## Interview topics they'll probably hit
+The 5-7 topics most likely to come up, ranked HIGH/MED/LOW probability.
+For EACH topic, write four lines:
+  - **Topic** (HIGH/MED/LOW) — short label
+  - **Why this comes up:** one sentence citing the specific signals that imply it
+  - **Your Skai angle:** the closest project from the candidate's Skai work
+  - **30-second pitch:** the actual sentences the candidate can say to bridge
+
 ## Interview process
 What rounds, in what order, how long, what each round optimizes for.
 Use only `interview_process` signals — if there are none, write "No specific
@@ -53,12 +67,12 @@ Verbatim questions ex-candidates have reported being asked.
 Use only `specific_question_asked` signals. If none, omit this section entirely.
 
 ## Likely questions
-Questions YOU should expect, derived from tech stack, scale, recent news, and
-the candidate's background. Each item: the question + a one-line answer angle.
+Concrete questions YOU should expect. Each item: the question + one-line Skai
+angle to answer with.
 
 ## Talking points
 How to connect the candidate's background to this company. Cite playbook
-chunks where they fit. Each bullet: claim → which experience supports it.
+chunks where they fit. Each bullet: claim → which Skai experience supports it.
 
 ## Smart questions to ask
 Forward-looking, signal seniority. Reference specific company facts from signals.
@@ -71,14 +85,44 @@ Surface `layoff_signals` + funding concerns + culture concerns. Phrase as
 questions to ask diplomatically, not accusations.
 """
 
-_DEFAULT_BACKGROUND = """Senior software engineer, 6 years at Skai (formerly Kenshoo) on team Nexus.
-Flagship project: end-to-end AMC (Amazon Marketing Cloud) integration —
-SQS-driven Java microservice, Airflow DAGs, AWS Lambda for S3 result fetch,
-Snowflake for analytical storage, SingleStore for sub-second serving.
-Recently built AI agents and internal LLM observability tooling.
-Targeting: AI Engineer / ML Platform / Backend Infra roles.
-Comfortable in Java, Python, distributed systems, AWS.
-Looking for: real engineering depth, customer-adjacent problems, early-stage scope."""
+_DEFAULT_BACKGROUND = """Ofir Michaely — senior software engineer, 6 years at Skai (formerly Kenshoo) on team Nexus.
+
+## Flagship Skai project: end-to-end AMC (Amazon Marketing Cloud) integration
+
+- Java microservice consuming SQS messages from Dataset Manager MS, kicking
+  Airflow DAGs that submit queries to AMC.
+- HttpSensor polling per-DAG (chose isolation over central poller — cost is
+  worker slots at scale, benefit is failure isolation).
+- AWS Lambda for cross-account S3 result fetch (pre-signed URL with TTL trap,
+  15-min hard cap, runtime+memory tuned, sits at the trust boundary between
+  AMC's AWS account and Skai's).
+- Snowflake for analytical storage (raw + enriched tables + ConversionAggregator
+  rollups by campaign + time bucket).
+- SingleStore for sub-second dashboard serving (the warehouse-vs-serving split,
+  reverse ETL via signleStoreWriter).
+- Status callback via separate SQS queue (decoupled because Airflow shouldn't
+  hold DB credentials; idempotent because UPDATE status='SUCCEEDED' is a no-op
+  on second run).
+- Architecture challenges led: cross-account IAM design, per-stage idempotency,
+  multi-tenancy isolation (every row tenant-scoped, query tag cost attribution),
+  stuck-job sweep DAG for lost SQS messages, schema-as-versioned-interface at
+  the Snowflake → SingleStore boundary.
+
+## Recent work (Skai AI tooling)
+
+- Built AI agents that automated the AMC workflow.
+- Internal LLM observability tooling — per-call tracing, cost shape, eval harness.
+
+## Stack
+
+Java (Spring), Python, SQL, AWS (SQS, Lambda, IAM, S3), Snowflake, SingleStore,
+Airflow, Kafka. Strong on distributed systems + data pipelines.
+
+## What this candidate is looking for
+
+AI Engineer / ML Platform / Backend Infra roles. Real engineering depth,
+customer-adjacent problems, early-to-mid stage scope. Prefers in-person or
+hybrid in Israel; open to international roles."""
 
 
 class Synthesizer:
@@ -119,6 +163,9 @@ def _parse(company: str, markdown: str) -> PrepDoc:
     return PrepDoc(
         company=company,
         summary=sections.get("tl;dr", "").strip(),
+        predicted_topics=_bullets(
+            sections.get("interview topics they'll probably hit", "")
+        ),
         interview_process=_bullets(sections.get("interview process", "")),
         specific_questions_reported=_bullets(
             sections.get("specific questions reported", "")

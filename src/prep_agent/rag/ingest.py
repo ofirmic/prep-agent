@@ -21,6 +21,7 @@ from prep_agent.rag.store import PlaybookStore
 DEFAULT_PLAYBOOK_FILES = (
     "interview-playbook.md",
     "interview-drill.md",
+    "interview-drill-sheet.md",
     "interview-hebrew.md",
     "amc-project-deepdive.md",
     "amc-deepdive-answers.md",

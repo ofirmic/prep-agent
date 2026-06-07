@@ -58,8 +58,7 @@ for row_start in range(0, len(companies), 3):
             st.markdown(" ".join(pills) if pills else "", unsafe_allow_html=True)
             st.markdown(
                 f"<div style='font-size:0.82rem; color:#8B93A7; margin-top:0.5rem'>"
-                f"Last activity: {last}<br>"
-                f"<span class='mono'>{c.total_tokens:,} tokens · ${c.total_cost_usd:.4f}</span>"
+                f"Last activity: {last}"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -82,11 +81,6 @@ with col_left, st.container(border=True):
     st.markdown(f"### {selected.name}")
     if selected.last_seen_at:
         st.caption(f"Last seen: {selected.last_seen_at:%Y-%m-%d %H:%M}")
-    st.markdown(
-        f"<span class='mono'>{selected.total_tokens:,} tok · "
-        f"${selected.total_cost_usd:.4f}</span>",
-        unsafe_allow_html=True,
-    )
 
     st.markdown("**Prep documents**")
     if not selected.prep_files:
@@ -95,7 +89,6 @@ with col_left, st.container(border=True):
         st.markdown(
             f"<div style='font-size:0.85rem'>"
             f"<code>{p.path.name}</code> · "
-            f"<span class='mono'>{p.size_bytes:,} b</span> · "
             f"<span style='color:#8B93A7'>{p.date:%Y-%m-%d %H:%M}</span>"
             f"</div>",
             unsafe_allow_html=True,
@@ -109,9 +102,8 @@ with col_left, st.container(border=True):
         kind = {"ok": "ok", "error": "err"}.get(t.status, "muted")
         st.markdown(
             f"<div style='font-size:0.85rem'>"
-            f"<code>{t.trace_id}</code> {pill(t.status, kind)} · "
-            f"<span style='color:#8B93A7'>{when}</span> · "
-            f"<span class='mono'>{t.total_tokens:,} tok · ${t.total_cost_usd:.4f}</span>"
+            f"{pill(t.status, kind)} · "
+            f"<span style='color:#8B93A7'>{when}</span>"
             f"</div>",
             unsafe_allow_html=True,
         )

@@ -54,6 +54,7 @@ class PrepDoc(BaseModel):
     """Final synthesis output. Sections are parsed best-effort; raw_markdown is canonical."""
     company: str
     summary: str
+    predicted_topics: list[str] = []  # what they'll probably grill you on
     likely_questions: list[str]
     specific_questions_reported: list[str] = []
     interview_process: list[str] = []
