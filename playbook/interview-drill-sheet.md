@@ -121,26 +121,124 @@ Use the 5-layer framework. Walk it in this exact order:
 
 ## A.3 The 10-minute whiteboard walkthrough
 
-If they say "go deeper," draw the diagram first, then walk it. The drawing order matters — it's the order you build the narrative.
+If they say "go deeper" or "draw it," this is the section. About **5 minutes drawing + 5 minutes follow-up Q&A.**
 
-**Drawing order:**
-1. Customer / Dataset Manager MS (left).
-2. SQS `newQueryRequestQueue` arrow into AMC MS.
-3. AMC MS box → MySQL (idempotency + state).
-4. AMC MS → Airflow trigger (POST).
-5. Airflow DAG box with 5 internal steps: submit → HttpSensor poll → pre-signed URL → Lambda → Snowflake COPY INTO.
-6. AMC's AWS account (separate cloud-shaped box) with S3 inside.
-7. Lambda spans the boundary between Amazon's account and Skai's account — emphasize this.
-8. Snowflake (right of Airflow). Then arrow down to `singleStoreWriter` reverse ETL → SingleStore → Reporting API → Dashboards.
-9. Side arrow: Airflow → `query_status_update` SQS → AMC MS (status callback).
+### The principle behind the drawing order
 
-**Narrate in this order, naming the principle at each step:**
-- "REST for `get queries`, SQS for `fetch_request` — match the channel to the latency budget."
-- "Java MS persists DB row *before* triggering Airflow — durable anchor for recovery."
-- "HttpSensor inside the DAG run, not a central poller — failure isolation."
-- "Lambda at the trust boundary — minimum-surface IAM crossing."
-- "Snowflake is the warehouse, SingleStore is the serving layer — different stores for different reads."
-- "Status callback separate queue — Airflow stays credential-free."
+The order isn't a visual layout — it's a **narrative**. Request enters → durably anchored → fans out to async work → crosses a trust boundary → lands in storage → gets re-shaped for serving → reaches the customer. If you draw boxes first and arrows later, the story is gone.
+
+The pattern at every step is the same:
+
+> **Draw one thing → say the principle → pause for a beat → draw the next.**
+
+You're earning seniority points for the *principle*, not the drawing. The drawing exists so the interviewer can follow your reasoning.
+
+### Step-by-step (~1 min per step)
+
+**Step 1 — Customer / Dataset Manager MS (left side, 30 sec)**
+Draw a box, label it **Dataset Manager MS**. Scribble "customer" or a user icon to its left.
+> *"DSM owns scheduling. It's the source of truth for **what** queries should run, not how. That separation matters — keeps AMC MS focused on execution."*
+
+**Step 2 — SQS `newQueryRequestQueue` (30 sec)**
+Arrow from DSM → queue icon → arrow into where AMC MS will go.
+> *"DSM publishes `fetch_request` to SQS. Why SQS not REST? Match the channel to the latency budget — fetch is async, minutes to hours, producer can't hold a connection. Get-queries is sync — that one is REST."*
+
+**Step 3 — AMC MS + MySQL (1 min)**
+Draw **AMC MS** box where the arrow lands. Beside it, cylinder labeled **MySQL** with two table names: `QUERY_REQUEST` and `QUERY`.
+> *"AMC MS consumes. Three things: idempotency check on `query_request_id`. Persist as NEW. Trigger the DAG. The DB row is the **durable anchor** — every recovery path starts here. If anything between consumption and DAG trigger fails, the NEW row is what we resume from."*
+
+The phrase **"durable anchor"** is signature senior vocabulary. Use it.
+
+**Step 4 — Airflow trigger (30 sec)**
+Arrow from AMC MS → new box labeled **Airflow** (or `amc_query_result_processing` DAG). Label the arrow "POST /dags/.../runs".
+> *"AMC MS POSTs to Airflow's REST API. On success, status flips NEW → RUNNING. The flip happens **before** AMC actually starts — that's a lie to the dashboard, but it's the latest event AMC MS has visibility into. The clean fix is a finer state machine; we took the lazy path."*
+
+Acknowledging a design weakness honestly is a senior signal interviewers love.
+
+**Step 5 — Airflow DAG internal steps (1.5 min — most detail)**
+Inside the Airflow box, list 5 sub-steps: **submit → poll → URL → Lambda → COPY INTO**.
+> *"The DAG owns everything between trigger and completion. Submit to AMC. `HttpSensor` polls — and **the polling is inside the DAG run**, not a central poller. Trade: more worker slots. Gain: failure isolation. One bad query can't blow up polling for everyone. At 100× scale this becomes the wall — fix is deferrable operators."*
+
+The last sentence does two things: shows you understand the current choice AND you've thought about its limit.
+
+**Step 6 — AMC's AWS account with S3 (30 sec)**
+Draw a separate cloud-shaped or differently-styled box on the right. Label it **AMC's AWS account**. Inside it: **S3** (result file).
+> *"AMC's result files live in **Amazon's** AWS account, not ours. That's the trust boundary."*
+
+Visual separation matters. Use a different shape for "their account" vs "our account." Makes the cross-account story instantly visible.
+
+**Step 7 — Lambda spans the boundary (1.5 min — most important visual)**
+Draw Lambda **straddling the boundary** between AMC's account and Skai's. Arrows: pre-signed URL in, result file out.
+> *"Lambda is the cross-account fetcher. Three reasons not ECS: **minimum-surface IAM** (Lambda is one execution role; ECS is a whole VPC), zero idle cost, failure containment. The 15-minute hard cap is the trade-off — for very large results, chunked byte-range download or route the tail to ECS."*
+
+You've named the alternative, the choice, and the trade-off. Trifecta.
+
+**Step 8 — Snowflake + serving (1.5 min)**
+Right of Lambda, draw **Snowflake**. Arrow from Lambda: "S3 → COPY INTO raw → enriched."
+Below Snowflake, draw `singleStoreWriter` (dashed arrow — reverse ETL) → **SingleStore** → **Reporting API** → **Dashboards**.
+> *"Snowflake is the analytical store. SingleStore is the serving store — sub-second reads. Different stores for different read patterns. The boundary between them is a **versioned schema** — that's the contract. The dashed arrow is the reverse-ETL; runs on its own schedule."*
+
+**"Versioned schema as the contract"** is gold — senior infra people use this exact framing.
+
+**Step 9 — Status callback side channel (30 sec)**
+Curved arrow from Airflow back up to AMC MS, going through another SQS box labeled **`query_status_update`**.
+> *"Status callback. Separate queue — Airflow shouldn't hold DB credentials, and the queue's retries handle MySQL hiccups. UPDATE status='SUCCEEDED' is idempotent — re-running on a row already at SUCCEEDED is a no-op."*
+
+That closes the loop. Diagram complete.
+
+### The 5 minutes after you draw
+
+Stop drawing and **open your hand**:
+
+> *"That's the whole loop. Want me to go deeper on the cross-account IAM piece, the idempotency story, or what I'd change with a clean sheet?"*
+
+Three options, not one — forces them to choose. Whichever they pick, you have prepared material in §A.5 (decisions), §A.6 (hard Qs), and §A.7 (AI layer).
+
+### Handling interrupts mid-draw
+
+The interviewer **will** interrupt. That's engagement, not derailment. Two rules:
+
+1. **Stop drawing immediately.** Don't multitask. Put the marker down, answer, then resume.
+2. **If they ask about something you haven't drawn yet**, say: *"Great — I was about to get to that in step N. Let me jump there now."* The drawing order is the default narrative when they let you drive. When they steer, you follow.
+
+### What to leave OFF the board
+
+9 boxes, 10 arrows, max. More than that and the interviewer loses focus.
+
+Mention verbally but **don't draw**:
+- Stuck-job sweep DAG (forensics tool, not happy path)
+- Cleanup DAG (`amc_cleanup_by_request_id`)
+- The `QUERY` table (only `QUERY_REQUEST` matters for the narrative)
+- Token-refresh for AMC's OAuth (only if they ask)
+- The agent / AI layer (separate diagram if it comes up; don't muddle)
+
+### Common mistakes to actively avoid
+
+1. **Drawing too neatly.** Senior engineers draw rough boxes. Neat whiteboard handwriting is a junior tell.
+2. **Drawing in silence.** The worst possible interview move. Talk *while* you draw.
+3. **Forgetting first-person ownership.** Use "I" — *"I owned AMC MS, the DAG, the Lambda, and the SingleStore reverse ETL. The Snowflake schema was co-designed with the data team."*
+4. **Running out of board.** Plan layout in your head before the first stroke. Left→right, top half ingest, bottom half serving. Leave space for the side channel.
+
+### The visual layout template
+
+```
+  [Customer]      [SQS]             [AMC's AWS account ]
+      │            │                [   ┌──────────┐   ]
+      ▼            ▼                [   │    S3    │   ]
+  [DSM] ──────▶ [AMC MS] ─POST──▶ [Airflow DAG] ──▶│ Lambda │   (boundary)
+                    │              ┌──────┐         [   └──────────┘   ]
+                    │              │submit│
+                  [MySQL]          │ poll │             │
+                  QUERY_REQUEST    │ URL  │             ▼
+                                   │Lambda│         [Snowflake]
+                                   │ COPY │             │
+                                   └──┬───┘             ▼
+                                      │           singleStoreWriter (dashed)
+                                      │                 ▼
+                                  [SQS callback] ▶ [SingleStore] ▶ [API] ▶ [Dashboards]
+```
+
+Doesn't have to look exactly like this. But the **two halves** (top: ingest, bottom: serving) and the **boundary** (cross-account box) need to be visually distinct.
 
 ## A.4 Numbers you must know cold
 
