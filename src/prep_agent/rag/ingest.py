@@ -28,6 +28,7 @@ DEFAULT_PLAYBOOK_FILES = (
     "amc-mock-drill.md",
     "system-design-mock-drill.md",
     "skai-ai-agents-mock-drill.md",
+    "ai-eng-gaps-drill.md",
     "prep-agent-build-plan.md",
 )
 

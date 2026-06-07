@@ -56,6 +56,11 @@ DOCS: tuple[Doc, ...] = (
         "Your AI agent + LLM observability work — pitches, decisions, bridge stories to AI infra roles.",
     ),
     Doc(
+        "AI eng gaps drill",
+        "ai-eng-gaps-drill.md",
+        "LangChain/LangGraph, RAGAS, ReAct/Plan-Execute, MCP, Bedrock — crash course + honest framing.",
+    ),
+    Doc(
         "Senior playbook",
         "interview-playbook.md",
         "The full framework — how interviews are graded, 5-layer system talk, scaling.",
