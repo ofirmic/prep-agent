@@ -25,6 +25,8 @@ DEFAULT_PLAYBOOK_FILES = (
     "interview-hebrew.md",
     "amc-project-deepdive.md",
     "amc-deepdive-answers.md",
+    "amc-mock-drill.md",
+    "system-design-mock-drill.md",
     "prep-agent-build-plan.md",
 )
 

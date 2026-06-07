@@ -41,6 +41,16 @@ DOCS: tuple[Doc, ...] = (
         kind="image",
     ),
     Doc(
+        "AMC mock drill",
+        "amc-mock-drill.md",
+        "Flashcard Q&A — 25+ AMC interview questions with model answers. Pure practice fuel.",
+    ),
+    Doc(
+        "System design drill",
+        "system-design-mock-drill.md",
+        "5-layer walks for 6 design exercises + pushback Q&A + back-of-envelope numbers.",
+    ),
+    Doc(
         "Senior playbook",
         "interview-playbook.md",
         "The full framework — how interviews are graded, 5-layer system talk, scaling.",
