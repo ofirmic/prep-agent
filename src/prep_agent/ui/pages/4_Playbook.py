@@ -51,6 +51,11 @@ DOCS: tuple[Doc, ...] = (
         "5-layer walks for 6 design exercises + pushback Q&A + back-of-envelope numbers.",
     ),
     Doc(
+        "Skai AI agents drill",
+        "skai-ai-agents-mock-drill.md",
+        "Your AI agent + LLM observability work — pitches, decisions, bridge stories to AI infra roles.",
+    ),
+    Doc(
         "Senior playbook",
         "interview-playbook.md",
         "The full framework — how interviews are graded, 5-layer system talk, scaling.",
