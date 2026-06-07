@@ -1,14 +1,14 @@
 """Playbook — browse all of your interview prep docs with TOC navigation.
 
-Looks for known playbook docs in ~/Documents, the repo's `playbook/` dir, and the
-Docker bake path `/app/playbook/`. Each doc renders with a sidebar TOC built from
-its H2/H3 headings.
+Markdown docs render with an auto-built H2/H3 TOC sidebar.
+Image docs (e.g. the annotated architecture diagram) render full-width.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import streamlit as st
 
@@ -25,6 +25,7 @@ class Doc:
     label: str
     filename: str
     description: str
+    kind: Literal["md", "image"] = "md"
 
 
 DOCS: tuple[Doc, ...] = (
@@ -32,6 +33,12 @@ DOCS: tuple[Doc, ...] = (
         "Drill sheet",
         "interview-drill-sheet.md",
         "Compact night-before + morning-of: Skai/AMC narrative + system design.",
+    ),
+    Doc(
+        "AMC architecture",
+        "amc-architecture-annotated.png",
+        "Annotated diagram of the end-to-end AMC integration — 15 callouts with explanations.",
+        kind="image",
     ),
     Doc(
         "Senior playbook",
@@ -63,7 +70,9 @@ DOCS: tuple[Doc, ...] = (
 CANDIDATE_ROOTS = (
     Path.home() / "Documents",
     Path(__file__).resolve().parents[3] / "playbook",
+    Path(__file__).resolve().parents[3] / "docs" / "screenshots",
     Path("/app/playbook"),
+    Path("/app/docs/screenshots"),
 )
 
 
@@ -153,32 +162,56 @@ st.query_params["doc"] = _slugify_heading(selected_doc.label)
 st.caption(selected_doc.description)
 st.divider()
 
-content = selected_path.read_text(encoding="utf-8")
-toc = _build_toc(content)
+# --- Sidebar (filled per-doc-kind below) ---
+sidebar_placeholder = st.sidebar.empty()
 
-# --- Sidebar TOC ---
-with st.sidebar:
-    st.markdown("### Jump to section")
-    st.caption(f"_{selected_doc.label}_")
-    if toc:
-        html = []
-        for depth, slug, title in toc:
-            display = title if len(title) < 48 else title[:47] + "…"
-            html.append(
-                f'<a class="toc-link depth-{depth}" href="#{slug}">{display}</a>'
-            )
-        st.markdown("\n".join(html), unsafe_allow_html=True)
-    else:
-        st.caption("(no headings)")
 
-    if missing:
+def _render_sidebar_md(toc_items: list[tuple[int, str, str]]) -> None:
+    with sidebar_placeholder.container():
+        st.markdown("### Jump to section")
+        st.caption(f"_{selected_doc.label}_")
+        if toc_items:
+            html = []
+            for depth, slug, title in toc_items:
+                display = title if len(title) < 48 else title[:47] + "…"
+                html.append(
+                    f'<a class="toc-link depth-{depth}" href="#{slug}">{display}</a>'
+                )
+            st.markdown("\n".join(html), unsafe_allow_html=True)
+        else:
+            st.caption("(no headings)")
+        if missing:
+            st.divider()
+            st.caption("**Not found:**")
+            for d in missing:
+                st.caption(f"• `{d.filename}`")
         st.divider()
-        st.caption("**Not found:**")
-        for d in missing:
-            st.caption(f"• `{d.filename}`")
+        st.caption(f"Source: `{selected_path.name}`")
 
-    st.divider()
-    st.caption(f"Source: `{selected_path.name}`")
+
+def _render_sidebar_image() -> None:
+    with sidebar_placeholder.container():
+        st.markdown("### About this diagram")
+        st.caption(
+            "Two halves: top = request → execution → ingest. "
+            "Bottom = serving → product. Snowflake is the boundary."
+        )
+        st.divider()
+        st.markdown("**Drill yourself:**")
+        st.caption(
+            "Cover the legend. Walk every numbered callout out loud. "
+            "If you can't explain a box without peeking, that's tonight's drill."
+        )
+        st.divider()
+        st.caption(f"Source: `{selected_path.name}`")
+
 
 # --- Body ---
-st.markdown(_inject_anchors(content), unsafe_allow_html=True)
+if selected_doc.kind == "image":
+    _render_sidebar_image()
+    st.image(str(selected_path), use_container_width=True)
+else:
+    content = selected_path.read_text(encoding="utf-8")
+    toc = _build_toc(content)
+    _render_sidebar_md(toc)
+    st.markdown(_inject_anchors(content), unsafe_allow_html=True)
