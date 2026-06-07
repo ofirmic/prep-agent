@@ -18,6 +18,73 @@
 
 The interviewer will give you 5–60 minutes for this. You need three lengths.
 
+## A.0 The pitch delivery workflow (read this first)
+
+**Don't deliver the pitch like a monologue.** Deliver it like a conversation in three beats: **open → check → branch**.
+
+### Beat 1 — Open with the 60-second pitch (§A.1)
+
+Speak it at normal pace. Land the domain primer in sentence 1 ("AMC is a clean-room SQL warehouse..."). End on the open hand: *"I'll go deeper on whichever you want."*
+
+**Then stop talking.** Three full seconds of silence. Most candidates lose here by filling the silence themselves.
+
+### Beat 2 — Read the steer
+
+Watch what the interviewer asks. Map their question to one of the seven branches below. If they say nothing, ask: *"Want me to walk the architecture, or the hardest parts, or what I'd change with a clean sheet?"* — that gives them control and signals seniority.
+
+### Beat 3 — Branch into the right material
+
+```
+                           60s PITCH (§A.1)
+                                  │
+                          ┌───────┴───────┐
+                          │  PAUSE 3 sec  │
+                          └───────┬───────┘
+                                  │
+                          What did they ask?
+                                  │
+   ┌───────────────────┬──────────┼──────────┬─────────────────────────┐
+   │                   │          │          │                         │
+"Tell me more"     "Draw it"  "What was   "Why X     "What would you   "Tell me about   "What about
+ / "go deeper"                  hard?"     not Y?"    do differently?"  a failure?"      AI/ML?"
+   │                   │          │          │                         │                   │
+   ▼                   ▼          ▼          ▼                         ▼                   ▼
+§A.2               §A.3       §A.5         §A.5     §A.6 last 2 Qs    §A.6 worst-bug    §A.7 (AI/agents)
+3-min              Whiteboard Decisions   Decisions /  ("differently"  story w/ 4-beat   30s pitch
+deep dive          walk        & open      trade-off    + reflection)  structure         then offer
+(5-layer)          (drawing   gaps         matrix                                       deep dive
+                    order)
+                                  │
+                                  ▼
+                          CLOSE EVERY ANSWER WITH:
+                  "want me to go deeper on X, Y, or Z?"
+                          (gives them control)
+                                  │
+                                  ▼
+                      THEN ask THEM a question:
+            "How is this same problem shaped at <their company>?"
+                    (reframes you from candidate to peer)
+```
+
+### Choreography rules (read these out loud once)
+
+1. **Domain primer in sentence 1.** If they don't know AMC, the whole story is fog. Don't assume.
+2. **Pause after every paragraph.** Silence is your friend — it lets the interviewer steer, and steering = engagement.
+3. **Drawing comes second.** Never draw before you've said what you're drawing. Boxes without context = junior signal.
+4. **End every long answer with "want me to go deeper on X / Y / Z?"** — three options, not one. Forces the interviewer to choose, which they'll feel good about.
+5. **If you forget mid-answer**, say: *"...and the principle here is X — let me come back to the specific number."* Stay at the principle level, dodge the specific, return to it when it surfaces.
+6. **Ask them a question** after each branch. Reframes you from candidate to peer. (See §B.2 for the script.)
+7. **If they push on a number you don't remember**: *"the configured value was around X, I'd verify in the repo."* Calibration is a senior signal.
+
+### What NOT to do
+
+- **Don't dump everything.** Pick the branch they asked about. If they asked about hard parts, don't pivot to the AI work.
+- **Don't memorize a script for §A.2 / §A.3.** Memorize the *structure* (5-layer for A.2, drawing order for A.3) and improvise the words. Scripts sound brittle; structure sounds senior.
+- **Don't put open issues (§A.2 step 5) at the end of the 60-second pitch.** Save them for when they ask. They're the closing punch, not the opener.
+- **Don't say "I think..." or "I'm not sure but..."** before a fact you know. Confidence calibration cuts both ways — *down* on guesses, *up* on the things you actually built.
+
+---
+
 ## A.1 The 60-second pitch (memorize verbatim)
 
 > "At Skai I owned the end-to-end AMC integration — Amazon Marketing Cloud is a clean-room SQL warehouse Amazon exposes for advertisers. We built a Java microservice that consumes query requests from SQS and triggers Airflow DAGs that submit the query to AMC, poll for completion, and pull the result file via a cross-account Lambda into Snowflake. From Snowflake we run a reverse-ETL into SingleStore so customer dashboards serve sub-second. It's multi-tenant, every row is tenant-scoped, and cost is attributed per customer via query tags. The hard parts were idempotency end to end, cross-account IAM, and the warehouse-versus-serving boundary — I'll go deeper on whichever you want."
@@ -130,11 +197,67 @@ Three things. (1) Saga-style orchestrator with recovery as a first-class state, 
 
 ## A.7 The AI / agents layer (recent work)
 
-When they ask "what have you done recently" or "any LLM experience":
+This is the section that converts your six years of data infra into "senior AI engineer" credibility. Treat it the same as the AMC pitch: 30s opener, 3-min deep dive, hard Qs.
 
-> "Lately I've built internal AI agents that automate the AMC workflow — query authoring, validation, and re-execution on failure. That work pushed me to build LLM observability tooling on top: per-call tracing, cost shape per call and per agent run, and a small eval harness so prompt changes are testable, not vibes. The thing I learned is that agents fail in a different way than services — silently and plausibly — so the observability layer is what makes them production-grade, not the model choice."
+### A.7.1 — The 30-second pitch (memorize)
 
-**Why this pairs well with AMC:** it lets you bridge "data infra senior" → "AI infra senior" without sounding like a junior trying to crowbar AI into their resume.
+> "Lately I've built internal AI agents that automate parts of the AMC workflow — drafting query SQL, validating it against AMC's quirky dialect, re-running on failure. To make them shippable I built LLM observability tooling alongside: per-call tracing, cost shape per stage, and an eval harness with LLM-as-judge so prompt changes are testable instead of vibes. The thing I learned is agents fail differently than services — silently and plausibly — so the observability layer is what makes them production-grade, not the model choice."
+
+**Why this works:** product first (automate the AMC workflow), tech second (agents + observability), ends on a thesis the interviewer wants to probe ("observability matters more than model choice").
+
+### A.7.2 — The 3-minute deep dive (5-layer)
+
+Use the same 5-layer structure as §A.2. Walk it in this order:
+
+1. **Problem (15s).** The AMC workflow had repetitive engineering work — query authoring, error fixing, re-submission. Engineer time per query was the bottleneck.
+2. **Constraints (30s).** Reliability on a non-deterministic stack. Predictable cost. Audit trail because the output (SQL) is customer-impacting. Multi-tenant.
+3. **Shape (45s).** Three components: (a) the agent runtime — tool-use loop with a small set of strict-schema tools; (b) the observability layer — every LLM call traced with cost / tokens / latency; (c) the eval harness — golden set + LLM-as-judge, runs on every prompt change.
+4. **Implementation (60s).** Python. Tool-use with strict JSON schemas (prevents hallucinated args). Hard iteration cap (~10) bounds cost. Trace store is SQLite + a pricing table for per-call cost — same observability pattern as our service RED metrics. Evals block any prompt change merge if quality drops on the 4-axis rubric.
+5. **Open issues (30s).** Tool-result caching for cost. Confidence-aware iteration cap (today's is fixed). Continuous eval-set generation from production traces (today's golden set is hand-curated and goes stale).
+
+### A.7.3 — Three decisions to lead with
+
+| Decision | Alternative | Trade-off |
+|---|---|---|
+| Tool-use agent loop | Single-shot LLM call | Lose: more LLM calls per task. Gain: model reasons over *real tool results*, not predictions of them. |
+| Small tool set (~5) | Many tools | Lose: harder to extend. Gain: every tool has hand-tuned schema; model picks the right one. |
+| Eval harness blocks merges | Prompt changes go straight to prod | Lose: slower iteration. Gain: prompt-change regressions caught before customer impact. |
+
+### A.7.4 — Hard questions (drill out loud)
+
+> **"Agents fail silently. How do you stop that?"**
+> Three classes: (1) plausible but wrong — caught by evals + production sampling; (2) tool succeeds but agent misuses the result — caught by validating agent reasoning over output; (3) cost / iteration runaway — caught by hard caps + alarming on long traces. The expensive bugs are (2) and (3), not (1).
+
+> **"What's the cost shape?"**
+> Dominated by one stage. Usually ~70% in the [validation / planning] stage, ~20% in another, the rest noise. A 2× cost reduction always comes from optimizing the dominant stage — smaller model, fewer tokens, better caching.
+
+> **"How do you eval a non-deterministic system?"**
+> Golden set + LLM-as-judge + calibration. Each golden case has an optional `manual_scores` field; the harness flags any judge axis disagreeing with humans by more than 1. That's how LLM-as-judge becomes defensible.
+
+> **"Why are agents different from services in terms of reliability?"**
+> A service fails by *erroring*. An agent fails by *being confidently wrong*. So observability is different — you need not just "did it return" but "did it return something *true*." That means evals are the test suite for an untestable thing.
+
+### A.7.5 — The bridge to AMC
+
+When asked "how does the AI work connect to your AMC engineering?":
+
+> "Two angles. First, the agents call tools that wrap the AMC platform I built — dry-run queries, fetch schemas, submit. The agent is a *user* of the AMC system. Second, the observability pattern carries over: per-tenant cost attribution is the same query-tag pattern we did for Snowflake, RED metrics on agent runs are the same shape as service metrics. The senior leap is recognizing the patterns are universal — the substrate changed (LLM vs service), the discipline didn't. I'm not pivoting from data to AI; I'm applying senior data-system discipline to AI."
+
+**This is the line that lands AI infra roles.** Memorize it.
+
+### A.7.6 — Company-specific bridges
+
+| Company flavor | The bridge |
+|---|---|
+| **Chalk** (real-time ML infra) | The warehouse-vs-serving split at Skai (Snowflake → SingleStore) is the same shape as offline-vs-online feature stores. Versioned schema as the boundary, freshness SLA as the contract. |
+| **ScaleOps** (K8s automation) | Per-tenant cost attribution + safe-automation-with-rollback is the exact pattern an infra-automation platform needs. The eval harness I built is what makes "automated changes to production" defensible. |
+| **Generic AI infra** | The agent + observability + eval triad I shipped is the same triad an AI infra company *sells*. I've built the customer's version of your product. |
+
+Pick the right bridge based on the company. Don't deliver all three.
+
+### A.7.7 — Full mock-drill flashcards
+
+For deeper practice, the dedicated **Skai AI agents drill** doc has 21 flashcard Qs across pitches, decisions, observability, reliability, bridges, and "what would you do differently." Use it the same way as the AMC mock drill.
 
 ---
 
